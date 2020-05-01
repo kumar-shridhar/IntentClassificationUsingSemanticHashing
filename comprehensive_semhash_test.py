@@ -1,8 +1,10 @@
-from __future__ import unicode_literals
 import sys
 import re
 import os
 from itertools import product
+from time import time
+import math
+import random
 import codecs
 import json
 import csv
@@ -12,15 +14,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 from sklearn import model_selection
-from time import time
 from sklearn.feature_extraction.text import TfidfVectorizer, HashingVectorizer, CountVectorizer
 from sklearn.feature_selection import SelectFromModel, SelectKBest, chi2
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.neighbors.nearest_centroid import NearestCentroid
-import math
-import random
 from tqdm import tqdm
 from nltk.corpus import wordnet
+from __future__ import unicode_literals
 from sklearn.linear_model import RidgeClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
@@ -32,10 +32,10 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neighbors import NearestCentroid
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.cluster import KMeans
 from sklearn.utils.extmath import density
 from sklearn import metrics
-from sklearn.cluster import KMeans
-from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
 
 # ## Benchmarking using SemHash on NLU Evaluation Corpora
@@ -81,21 +81,12 @@ from sklearn.model_selection import GridSearchCV
 # os.environ['LDFLAGS'] = '-framework CoreFoundation -framework SystemConfiguration'
 # !pip3 install spacy
 print(sys.path)
-
-
-
-
 #coding: utf-8
 # import locale
 # print(locale.getlocale())
-
-
 # Spacy english dataset with vectors needs to be present. It can be downloaded using the following command:
 # 
 # python -m spacy download en_core_web_lg
-
-
-
 # !python -m spacy download en_core_web_lg
 nlp=spacy.load('en_core_web_lg')
 print('Running')
@@ -116,7 +107,11 @@ print('Running')
 nouns = {x.name().split('.', 1)[0] for x in wordnet.all_synsets('n')}
 verbs = {x.name().split('.', 1)[0] for x in wordnet.all_synsets('v')}
 
+
 def get_synonyms(word, number= 3):
+""" 
+This function returns the synonyms of the word provided as arguement 
+""" 
     synonyms = []
     for syn in wordnet.synsets(word): 
         for l in syn.lemmas(): 
@@ -124,26 +119,20 @@ def get_synonyms(word, number= 3):
     synonyms = list(OrderedDict.fromkeys(synonyms))
     return synonyms[:number]
     #return [token.text for token in most_similar(nlp.vocab[word])]
-
-
-
-
 print(get_synonyms("search",-1))
 
-
-
-
-#Hyperparameters
-benchmark_dataset = '' # Choose from 'AskUbuntu', 'Chatbot' or 'WebApplication'
-oversample = False             # Whether to oversample small classes or not. True in the paper
+#Specify initial/default values for Hyperparameters
+benchmark_dataset =  ''        # Choose from 'AskUbuntu', 'Chatbot' or 'WebApplication'
+oversample = False     		   # Whether to oversample small classes or not. True in the paper
 synonym_extra_samples = False  # Whether to replace words by synonyms in the oversampled samples. True in the paper
-augment_extra_samples = False # Whether to add random spelling mistakes in the oversampled samples. False in the paper
-additional_synonyms = -1      # How many extra synonym augmented sentences to add for each sentence. 0 in the paper
+augment_extra_samples = False  # Whether to add random spelling mistakes in the oversampled samples. False in the paper
+additional_synonyms = -1       # How many extra synonym augmented sentences to add for each sentence. 0 in the paper
 additional_augments = -1       # How many extra spelling mistake augmented sentences to add for each sentence. 0 in the paper
-mistake_distance = -1        # How far away on the keyboard a mistake can be
-VECTORIZER = ""                 #which vectorizer to use. choose between "count", "hash", and "tfidf"
+mistake_distance = -1          # How far away on the keyboard a mistake can be
+VECTORIZER = ""                #which vectorizer to use. choose between "count", "hash", and "tfidf"
 
-RESULT_FILE = "result5.csv"
+#Results are stored in these files
+RESULT_FILE   =	"result5.csv"
 METADATA_FILE = "metadata5.csv"
 NUMBER_OF_RUNS_PER_SETTING = 10
 
@@ -154,16 +143,27 @@ NUMBER_OF_RUNS_PER_SETTING = 10
 for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples), additional_synonyms, additional_augments, mistake_distance, VECTORIZER in product(['AskUbuntu', 'Chatbot', 'WebApplication'], [(True, True, False)], [0], [0], [2.1], ["tfidf"]):
 
     if benchmark_dataset == "Chatbot":
-        intent_dict = {"DepartureTime":0, "FindConnection":1}
+       intent_dict = {"DepartureTime" :0, 
+					   "FindConnection":1}
+		
     elif benchmark_dataset == "AskUbuntu":
-        intent_dict = {"Make Update":0, "Setup Printer":1, "Shutdown Computer":2, "Software Recommendation":3, "None":4}
-    elif benchmark_dataset == "WebApplication":
-        intent_dict = {"Download Video":0, "Change Password":1, "None":2, "Export Data":3, "Sync Accounts":4,
-                      "Filter Spam":5, "Find Alternative":6, "Delete Account":7}
+         intent_dict = {"Make Update"  :0, 
+					   "Setup Printer":1,
+					   "Shutdown Computer":2,
+					   "Software Recommendation":3,
+					   "None":4}
+		
+	elif benchmark_dataset == "WebApplication":
+         intent_dict = {"Download Video":0,
+					   "Change Password":1,
+					   "None":2,
+					   "Export Data":3,
+					   "Sync Accounts":4,
+                       "Filter Spam":5, 
+					   "Find Alternative":6, 
+					   "Delete Account":7}
 
-
-
-
+	#Defining the train and test files
     filename_train = "datasets/KL/" + benchmark_dataset + "/train.csv"
     filename_test = "datasets/KL/" + benchmark_dataset + "/test.csv"
 
@@ -171,6 +171,10 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
 
 
     def read_CSV_datafile(filename):    
+	"""
+	This function reads data from the csv file provided
+	as arguement
+	"""
         X = []
         y = []
         with open(filename,'r') as csvfile:
@@ -179,12 +183,13 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
                 X.append(row[0])
                 if benchmark_dataset == 'AskUbuntu':
                     y.append(intent_dict[row[1]])
+					
                 elif benchmark_dataset == 'Chatbot':
                     y.append(intent_dict[row[1]])
+					
                 else:
                     y.append(intent_dict[row[1]])           
         return X,y
-
 
 
 
@@ -202,7 +207,6 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
 
 
 
-
     def preprocess(doc):
         clean_tokens = []
         doc = nlp(doc)
@@ -213,16 +217,18 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
 
 
 
-
     #********* Data augmentation part **************
     class MeraDataset():
-        """ Class to find typos based on the keyboard distribution, for QWERTY style keyboards
-
-            It's the actual test set as defined in the paper that we comparing against."""
+        """ 
+		Class to find typos based on the keyboard distribution, for QWERTY style keyboards
+        It's the actual test set as defined in the paper that we comparing against.
+		"""
 
         def __init__(self, dataset_path):
-            """ Instantiate the object.
-                @param: dataset_path The directory which contains the data set."""
+            """
+			Instantiate the object.
+                @param: dataset_path The directory which contains the data set.
+			"""
             self.dataset_path = dataset_path
             self.X_test, self.y_test, self.X_train, self.y_train = self.load()
             self.keyboard_cartesian = {'q': {'x': 0, 'y': 0}, 'w': {'x': 1, 'y': 0}, 'e': {'x': 2, 'y': 0},
@@ -235,31 +241,33 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
                                        'h': {'x': 5, 'y': 1}, 'k': {'x': 7, 'y': 1}, 'ö': {'x': 11,'y': 0},
                                        'l': {'x': 8, 'y': 1}, 'v': {'x': 3, 'y': 2}, 'n': {'x': 5, 'y': 2},
                                        'ß': {'x': 10,'y': 2}, 'ü': {'x': 10,'y': 2}, 'ä': {'x': 10,'y': 0}}
+			
             self.nearest_to_i = self.get_nearest_to_i(self.keyboard_cartesian)
             self.splits = self.stratified_split()
 
 
         def get_nearest_to_i(self, keyboard_cartesian):
-            """ Get the nearest key to the one read.
-                @params: keyboard_cartesian The layout of the QWERTY keyboard for English
-
-                return dictionary of eaculidean distances for the characters"""
+            """ 
+			Get the nearest key to the one read.
+            @params: keyboard_cartesian The layout of the QWERTY keyboard for English
+            return dictionary of eaculidean distances for the characters.
+			"""
             nearest_to_i = {}
             for i in keyboard_cartesian.keys():
                 nearest_to_i[i] = []
+				
                 for j in keyboard_cartesian.keys():
                     if self._euclidean_distance(i, j) < mistake_distance: #was > 1.2
                         nearest_to_i[i].append(j)
             return nearest_to_i
 
         def _shuffle_word(self, word, cutoff=0.7):
-            """ Rearange the given characters in a word simulating typos given a probability.
-
+            """ 
+			Rearange the given characters in a word simulating typos given a probability.
                 @param: word A single word coming from a sentence
                 @param: cutoff The cutoff probability to make a change (default 0.9)
-
                 return The word rearranged 
-                """
+			"""
             word = list(word.lower())
             if random.uniform(0, 1.0) > cutoff:
                 loc = np.random.randint(0, len(word))
