@@ -446,21 +446,24 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
 
 
     print("./datasets/KL/" + benchmark_dataset + "/train.csv")
-    t0 = time()
-    dataset = MeraDataset("./datasets/KL/" + benchmark_dataset + "/train.csv")
-    
-    print("mera****************************")
-    splits = dataset.get_splits()
-    xS_train = []
-    yS_train = []
-    for elem in splits[0]["train"]["X"]:
-        xS_train.append(elem)
-    print(xS_train[:5])
+    def gen_raw_train_data(benchmark_dataset):
+        
+        dataset = MeraDataset(os.path.join("./datasets/KL/" , benchmark_dataset , "/train.csv"))
+        print("mera****************************")
+        splits = dataset.get_splits()
+        xS_train = []
+        yS_train = []
+        
+        for elem in splits[0]["train"]["X"]:
+            xS_train.append(elem)
+        
+        print(xS_train[:5])
+        print(len(xS_train))
 
-    for elem in splits[0]["train"]["y"]:
-        yS_train.append(intent_dict[elem])
-    preprocess_time = time()-t0
-    print(len(xS_train))
+        for elem in splits[0]["train"]["y"]:
+            yS_train.append(intent_dict[elem])
+        
+        return xS_train , yS_train , preprocess_time
 
 
 
@@ -470,8 +473,10 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
     print(y_train_raw[:5])
     print(X_test_raw[:5])
     print(y_test_raw[:5])
-    X_train_raw = xS_train
-    y_train_raw = yS_train
+    t0 = time()
+    X_train_raw ,y_train_raw = gen_raw_train_data(benchmark_dataset)
+    preprocess_time = time()-t0
+
 
     print("Training data samples: \n",X_train_raw, "\n\n")
 
