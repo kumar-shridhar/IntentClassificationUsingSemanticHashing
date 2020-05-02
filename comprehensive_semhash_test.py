@@ -102,127 +102,115 @@ print('Running')
 
 #             for hyper_aug in [True, False]:
 #                 augm
+class Semhash_test(): 
+	def __init__(self):
+   	    self.nouns = {x.name().split('.', 1)[0] for x in wordnet.all_synsets('n')}
+            self.verbs = {x.name().split('.', 1)[0] for x in wordnet.all_synsets('v')}
+	    #Specify initial/default values for Hyperparameters
+	    self.benchmark_dataset =  ''        # Choose from 'AskUbuntu', 'Chatbot' or 'WebApplication'
+	    self.oversample = False     		   # Whether to oversample small classes or not. True in the paper
+	    self.synonym_extra_samples = False  # Whether to replace words by synonyms in the oversampled samples. True in the paper
+            self.augment_extra_samples = False  # Whether to add random spelling mistakes in the oversampled samples. False in the paper
+	    self.additional_synonyms = -1       # How many extra synonym augmented sentences to add for each sentence. 0 in the paper
+	    self.additional_augments = -1       # How many extra spelling mistake augmented sentences to add for each sentence. 0 in the paper
+	    self.mistake_distance = -1          # How far away on the keyboard a mistake can be
+            self.VECTORIZER = ""                #which vectorizer to use. choose between "count", "hash", and "tfidf"	
+	    #Results are stored in these files
+		RESULT_FILE   =	"result5.csv"
+		METADATA_FILE = "metadata5.csv"
+		NUMBER_OF_RUNS_PER_SETTING = 10
+	    
+	
 
-
-nouns = {x.name().split('.', 1)[0] for x in wordnet.all_synsets('n')}
-verbs = {x.name().split('.', 1)[0] for x in wordnet.all_synsets('v')}
-
-
-def get_synonyms(word, number= 3):
-""" 
-This function returns the synonyms of the word provided as arguement 
-""" 
-    synonyms = []
-    for syn in wordnet.synsets(word): 
-        for l in syn.lemmas(): 
-            synonyms.append(l.name().lower().replace("_", " "))
-    synonyms = list(OrderedDict.fromkeys(synonyms))
-    return synonyms[:number]
-    #return [token.text for token in most_similar(nlp.vocab[word])]
-print(get_synonyms("search",-1))
-
-#Specify initial/default values for Hyperparameters
-benchmark_dataset =  ''        # Choose from 'AskUbuntu', 'Chatbot' or 'WebApplication'
-oversample = False     		   # Whether to oversample small classes or not. True in the paper
-synonym_extra_samples = False  # Whether to replace words by synonyms in the oversampled samples. True in the paper
-augment_extra_samples = False  # Whether to add random spelling mistakes in the oversampled samples. False in the paper
-additional_synonyms = -1       # How many extra synonym augmented sentences to add for each sentence. 0 in the paper
-additional_augments = -1       # How many extra spelling mistake augmented sentences to add for each sentence. 0 in the paper
-mistake_distance = -1          # How far away on the keyboard a mistake can be
-VECTORIZER = ""                #which vectorizer to use. choose between "count", "hash", and "tfidf"
-
-#Results are stored in these files
-RESULT_FILE   =	"result5.csv"
-METADATA_FILE = "metadata5.csv"
-NUMBER_OF_RUNS_PER_SETTING = 10
+	def get_synonyms(word, number= 3):
+	""" 
+	This function returns the synonyms of the word provided as arguement 
+	""" 
+    	synonyms = []
+    	for syn in wordnet.synsets(word): 
+            for l in syn.lemmas(): 
+                synonyms.append(l.name().lower().replace("_", " "))
+    		synonyms = list(OrderedDict.fromkeys(synonyms))
+    	return synonyms[:number]
+    	#return [token.text for token in most_similar(nlp.vocab[word])]
+	print(get_synonyms("search",-1))
 
 #Comprehensive settings testing
 #for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples), additional_synonyms, additional_augments, mistake_distance, VECTORIZER in product(['AskUbuntu', 'Chatbot', 'WebApplication'], [(False, False, False),(True, False, False),(True, False, True),(True, True, False),(True, True, True)], [0,4], [0,4], [2.1], ["tfidf", "hash", "count"]):
 
 #Settings from the original paper
-for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples), additional_synonyms, additional_augments, mistake_distance, VECTORIZER in product(['AskUbuntu', 'Chatbot', 'WebApplication'], [(True, True, False)], [0], [0], [2.1], ["tfidf"]):
-
-    if benchmark_dataset == "Chatbot":
-       intent_dict = {"DepartureTime" :0, 
+	def benchmark_dataset()
+	    for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples), additional_synonyms, additional_augments, mistake_distance, VECTORIZER in product(['AskUbuntu', 'Chatbot', 'WebApplication'], [(True, True, False)], [0], [0], [2.1], ["tfidf"]):
+	        if benchmark_dataset == "Chatbot":
+       			intent_dict = {"DepartureTime" :0, 
 					   "FindConnection":1}
 		
-    elif benchmark_dataset == "AskUbuntu":
-         intent_dict = {"Make Update"  :0, 
+    		elif benchmark_dataset == "AskUbuntu":
+         		intent_dict = {"Make Update"  :0, 
 					   "Setup Printer":1,
 					   "Shutdown Computer":2,
 					   "Software Recommendation":3,
 					   "None":4}
-		
-	elif benchmark_dataset == "WebApplication":
-         intent_dict = {"Download Video":0,
+		elif benchmark_dataset == "WebApplication":
+         		intent_dict = {"Download Video":0,
 					   "Change Password":1,
 					   "None":2,
 					   "Export Data":3,
 					   "Sync Accounts":4,
-                       "Filter Spam":5, 
+                       			    "Filter Spam":5, 
 					   "Find Alternative":6, 
 					   "Delete Account":7}
+	    #Defining the train and test files
+    	    filename_train = "datasets/KL/" + benchmark_dataset + "/train.csv"
+    	    filename_test = "datasets/KL/" + benchmark_dataset + "/test.csv"	
 
-	#Defining the train and test files
-    filename_train = "datasets/KL/" + benchmark_dataset + "/train.csv"
-    filename_test = "datasets/KL/" + benchmark_dataset + "/test.csv"
+	    def read_CSV_datafile(filename):    
+		"""
+		This function reads data from the csv file provided as arguement
+		"""
+		X = []
+		y = []
+		with open(filename,'r') as csvfile:
+		    reader = csv.reader(csvfile, delimiter='\t')
+		    for row in reader:
+			X.append(row[0])
+			if benchmark_dataset == 'AskUbuntu':
+			    y.append(intent_dict[row[1]])
 
+			elif benchmark_dataset == 'Chatbot':
+			    y.append(intent_dict[row[1]])
 
+			else:
+			    y.append(intent_dict[row[1]])           
+		return X,y
 
+	    def tokenize(doc):
+		"""
+		Returns a list of strings containing each token in `sentence`
+		"""
+		#return [i for i in re.split(r"([-.\"',:? !\$#@~()*&\^%;\[\]/\\\+<>\n=])",
+		#                            doc) if i != '' and i != ' ' and i != '\n']
+		tokens = []
+		doc = nlp.tokenizer(doc)
+		for token in doc:
+		    tokens.append(token.text)
+		return tokens
 
-    def read_CSV_datafile(filename):    
-	"""
-	This function reads data from the csv file provided
-	as arguement
-	"""
-        X = []
-        y = []
-        with open(filename,'r') as csvfile:
-            reader = csv.reader(csvfile, delimiter='\t')
-            for row in reader:
-                X.append(row[0])
-                if benchmark_dataset == 'AskUbuntu':
-                    y.append(intent_dict[row[1]])
-					
-                elif benchmark_dataset == 'Chatbot':
-                    y.append(intent_dict[row[1]])
-					
-                else:
-                    y.append(intent_dict[row[1]])           
-        return X,y
-
-
-
-    def tokenize(doc):
-        """
-        Returns a list of strings containing each token in `sentence`
-        """
-        #return [i for i in re.split(r"([-.\"',:? !\$#@~()*&\^%;\[\]/\\\+<>\n=])",
-        #                            doc) if i != '' and i != ' ' and i != '\n']
-        tokens = []
-        doc = nlp.tokenizer(doc)
-        for token in doc:
-            tokens.append(token.text)
-        return tokens
-
-
-
-    def preprocess(doc):
-        clean_tokens = []
-        doc = nlp(doc)
-        for token in doc:
-            if not token.is_stop:
-                clean_tokens.append(token.lemma_)
-        return " ".join(clean_tokens)
-
+	    def preprocess(doc):
+		clean_tokens = []
+		doc = nlp(doc)
+		for token in doc:
+		    if not token.is_stop:
+			clean_tokens.append(token.lemma_)
+		return " ".join(clean_tokens)
 
 
     #********* Data augmentation part **************
-    class MeraDataset():
+class MeraDataset():
         """ 
-		Class to find typos based on the keyboard distribution, for QWERTY style keyboards
+	Class to find typos based on the keyboard distribution, for QWERTY style keyboards
         It's the actual test set as defined in the paper that we comparing against.
-		"""
+	"""
 
         def __init__(self, dataset_path):
             """
@@ -248,10 +236,10 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
 
         def get_nearest_to_i(self, keyboard_cartesian):
             """ 
-			Get the nearest key to the one read.
+	    Get the nearest key to the one read.
             @params: keyboard_cartesian The layout of the QWERTY keyboard for English
             return dictionary of eaculidean distances for the characters.
-			"""
+	    """
             nearest_to_i = {}
             for i in keyboard_cartesian.keys():
                 nearest_to_i[i] = []
@@ -263,25 +251,27 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
 
         def _shuffle_word(self, word, cutoff=0.7):
             """ 
-			Rearange the given characters in a word simulating typos given a probability.
-                @param: word A single word coming from a sentence
-                @param: cutoff The cutoff probability to make a change (default 0.9)
-                return The word rearranged 
-			"""
+	    Rearange the given characters in a word simulating typos given a probability.
+            @param: word A single word coming from a sentence
+            @param: cutoff The cutoff probability to make a change (default 0.9)
+            return The word rearranged 
+	    """
             word = list(word.lower())
             if random.uniform(0, 1.0) > cutoff:
                 loc = np.random.randint(0, len(word))
+		
                 if word[loc] in self.keyboard_cartesian:
                     word[loc] = random.choice(self.nearest_to_i[word[loc]])
-            return ''.join(word)
+	    return ''.join(word)
 
         def _euclidean_distance(self, a, b):
-            """ Calculates the euclidean between 2 points in the keyboard
+            """ 
+	    Calculates the euclidean between 2 points in the keyboard
                 @param: a Point one 
                 @param: b Point two
-
-                return The euclidean distance between the two points"""
-            X = (self.keyboard_cartesian[a]['x'] - self.keyboard_cartesian[b]['x']) ** 2
+                return The euclidean distance between the two points
+	   """
+	    X = (self.keyboard_cartesian[a]['x'] - self.keyboard_cartesian[b]['x']) ** 2
             Y = (self.keyboard_cartesian[a]['y'] - self.keyboard_cartesian[b]['y']) ** 2
             return math.sqrt(X + Y)
 
@@ -292,8 +282,8 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
             """ Augment the dataset of file with a sentence shuffled
                 @param: sentence The sentence from the set
                 @param: num_samples The number of sentences to genererate
-
                 return A set of augmented sentences"""
+	
             sentences = []
             for _ in range(num_samples):
                 sentences.append(self._get_augment_sentence(sentence))
@@ -314,34 +304,40 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
                 sample = [[Xs.append(item), ys.append(y)] for item in tmp_x]
     #             print(X, y)
     #             print(self.augmentedFile+str(self.nSamples)+".csv")
-
-    
             with open("./datasets/KL/Chatbot/train_augmented.csv", 'w', encoding='utf8') as csvFile:
-                fileWriter = csv.writer(csvFile, delimiter='\t')
-                for i in range(0, len(Xs)-1):
+               	 fileWriter = csv.writer(csvFile, delimiter='\t')
+                 for i in range(0, len(Xs)-1):
                     fileWriter.writerow([Xs[i] + '\t' + ys[i]])
                     # print(Xs[i], "\t", ys[i])
                     # print(Xs[i])
                 # fileWriter.writerows(Xs + ['\t'] + ys)
             return Xs, ys
 
-        # Randomly replaces the nouns and verbs by synonyms
+class Synonym_estimate():
+        
         def _synonym_word(self, word, cutoff=0.5):
+	    """ Randomly replaces the nouns and verbs by synonyms
+	    """
             if random.uniform(0, 1.0) > cutoff and len(get_synonyms(word)) > 0 and word in nouns and word in verbs:
                 return random.choice(get_synonyms(word))
             return word
 
-        # Randomly replace words (nouns and verbs) in sentence by synonyms
+        
         def _get_synonym_sentence(self, sentence, cutoff = 0.5):
+	    """
+	     Randomly replace words (nouns and verbs) in sentence by synonyms
+	     """
             return ' '.join([self._synonym_word(item, cutoff) for item in sentence.split(' ')])
 
         # For all classes except the largest ones; add duplicate (possibly augmented) samples until all classes have the same size
         def _oversample_split(self, X_train, y_train, synonym_extra_samples = False, augment_extra_samples = False):
-            """ Split the oversampled train dataset
+            """ 
+	    Split the oversampled train dataset
                 @param: X_train The full array of sentences
                 @param: y_train The train labels in the train dataset
 
-                return Oversampled training dataset"""
+                return Oversampled training dataset
+	   """
 
             classes = {}
             for X, y in zip(X_train, y_train):
@@ -389,12 +385,14 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
             return Xs, ys
 
         def load(self):
-            """ Load the file for now only the test.csv, train.csv files hardcoded
+            """
+	    Load the file for now only the test.csv, train.csv files hardcoded
 
-                return The vector separated in test, train and the labels for each one"""
+            return The vector separated in test, train and the labels for each one
+	    """
             with open(self.dataset_path) as csvfile:
-                readCSV = csv.reader(csvfile, delimiter='	')
-                all_rows = list(readCSV)
+                 readCSV = csv.reader(csvfile, delimiter='	')
+                 all_rows = list(readCSV)
     #             for i in all_rows:
     #                 if i ==  28823:
     #                     print(all_rows[i])
@@ -402,17 +400,19 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
                 y_test = [a[1] for a in all_rows]
 
             with open(self.dataset_path) as csvfile:
-                readCSV = csv.reader(csvfile, delimiter='\t')
-                all_rows = list(readCSV)
-                X_train = [a[0] for a in all_rows]
-                y_train = [a[1] for a in all_rows]
+                 readCSV = csv.reader(csvfile, delimiter='\t')
+                 all_rows = list(readCSV)
+                 X_train = [a[0] for a in all_rows]
+                 y_train = [a[1] for a in all_rows]
             return X_test, y_test, X_train, y_train
 
         def process_sentence(self, x):
-            """ Clean the tokens from stop words in a sentence.
-                @param x Sentence to get rid of stop words.
+            """ 
+	    Clean the tokens from stop words in a sentence.
+            @param x Sentence to get rid of stop words.
 
-                returns clean string sentence"""
+            returns clean string sentence
+	    """
             clean_tokens = []
             doc = nlp.tokenizer(x)
             for token in doc:
@@ -421,19 +421,24 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
             return " ".join(clean_tokens)
 
         def process_batch(self, X):
-            """See the progress as is coming along.
+            """
+	    See the progress as is coming along.
 
-                return list[] of clean sentences"""
+                return list[] of clean sentences
+	    """
             return [self.process_sentence(a) for a in tqdm(X)]
 
         def stratified_split(self):
-            """ Split data whole into stratified test and training sets, then remove stop word from sentences
+            """ 
+	    Split data whole into stratified test and training sets, then remove stop word from sentences
 
-                return list of dictionaries with keys train,test and values the x and y for each one"""
+            return list of dictionaries with keys train,test and values the x and y for each one
+	    """
             self.X_train, self.X_test = ([preprocess(sentence) for sentence in self.X_train],[preprocess(sentence) for sentence in self.X_test])
             print(self.X_train)
             if oversample:
                 self.X_train, self.y_train = self._oversample_split(self.X_train, self.y_train, synonym_extra_samples, augment_extra_samples)
+		
             if additional_synonyms > 0:
                 self.X_train, self.y_train = self._synonym_split(self.X_train, self.y_train, additional_synonyms)
             if additional_augments > 0:
@@ -451,41 +456,36 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
     #****************************************************
 
 
+  	 def split()
+	    print("./datasets/KL/" + benchmark_dataset + "/train.csv")
+	    t0 = time()
+	    dataset = MeraDataset("./datasets/KL/" + benchmark_dataset + "/train.csv")
 
+	    print("mera****************************")
+	    splits = dataset.get_splits()
+	    xS_train = []
+	    yS_train = []
+	    for elem in splits[0]["train"]["X"]:
+		xS_train.append(elem)
+	    print(xS_train[:5])
 
-    print("./datasets/KL/" + benchmark_dataset + "/train.csv")
-    t0 = time()
-    dataset = MeraDataset("./datasets/KL/" + benchmark_dataset + "/train.csv")
-    
-    print("mera****************************")
-    splits = dataset.get_splits()
-    xS_train = []
-    yS_train = []
-    for elem in splits[0]["train"]["X"]:
-        xS_train.append(elem)
-    print(xS_train[:5])
+	    for elem in splits[0]["train"]["y"]:
+		yS_train.append(intent_dict[elem])
+	    preprocess_time = time()-t0
+	    print(len(xS_train))
+	    X_train_raw, y_train_raw = read_CSV_datafile(filename = filename_train)
+	    X_test_raw, y_test_raw = read_CSV_datafile(filename = filename_test)
+	    print(y_train_raw[:5])
+	    print(X_test_raw[:5])
+	    print(y_test_raw[:5])
+	    X_train_raw = xS_train
+	    y_train_raw = yS_train
 
-    for elem in splits[0]["train"]["y"]:
-        yS_train.append(intent_dict[elem])
-    preprocess_time = time()-t0
-    print(len(xS_train))
+	    print("Training data samples: \n",X_train_raw, "\n\n")
 
+	    print("Class Labels: \n", y_train_raw, "\n\n")
 
-
-
-    X_train_raw, y_train_raw = read_CSV_datafile(filename = filename_train)
-    X_test_raw, y_test_raw = read_CSV_datafile(filename = filename_test)
-    print(y_train_raw[:5])
-    print(X_test_raw[:5])
-    print(y_test_raw[:5])
-    X_train_raw = xS_train
-    y_train_raw = yS_train
-
-    print("Training data samples: \n",X_train_raw, "\n\n")
-
-    print("Class Labels: \n", y_train_raw, "\n\n")
-
-    print("Size of Training Data: {}".format(len(X_train_raw)))
+	    print("Size of Training Data: {}".format(len(X_train_raw)))
 
 
     # 
@@ -494,7 +494,7 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
 
     # # SemHash
 
-
+class Semhash_estimate():
 
     def find_ngrams(input_list, n):
         return zip(*[input_list[i:] for i in range(n)])
@@ -520,8 +520,6 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
     X_train_raw = semhash_corpus(X_train_raw)
     X_test_raw = semhash_corpus(X_test_raw)
     semhash_time = time()-t0
-
-
     print(X_train_raw[:5])
     print(y_train_raw[:5])
     print()
@@ -535,27 +533,28 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
             vectorizer = CountVectorizer(analyzer='word')#,ngram_range=(1,1))
             vectorizer.fit(corpus)
             feature_names = vectorizer.get_feature_names()
+	
         elif VECTORIZER == "hash":
             vectorizer = HashingVectorizer(analyzer='word', n_features=2**10, non_negative=True)
             vectorizer.fit(corpus)
             feature_names = None
+	
         elif VECTORIZER == "tfidf":
             vectorizer = TfidfVectorizer(analyzer='word')
             vectorizer.fit(corpus)
             feature_names = vectorizer.get_feature_names()
+	
         else:
             raise Exception("{} is not a recognized Vectorizer".format(VECTORIZER))
         return vectorizer, feature_names
-
-
 
     def trim(s):
         """Trim string to fit on terminal (assuming 80-column display)"""
         return s if len(s) <= 80 else s[:77] + "..."
 
-
     # #############################################################################
     # Benchmark classifiers
+class Classifiers_metrics():
     def benchmark(clf, X_train, y_train, X_test, y_test, target_names,
                   print_report=True, feature_names=None, print_top10=False,
                   print_cm=True):
@@ -670,21 +669,34 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
         print("Evaluating Split {}".format(i_s))
         target_names = None
         if benchmark_dataset == "Chatbot":
-            target_names = ["Departure Time", "Find Connection"]
+            target_names = ["Departure Time", 
+			    "Find Connection"]
+	
         elif benchmark_dataset == "AskUbuntu":
-            target_names = ["Make Update", "Setup Printer", "Shutdown Computer","Software Recommendation", "None"]
+            target_names = ["Make Update",
+			    "Setup Printer",
+			    "Shutdown Computer",
+			    "Software Recommendation", 
+			    "None"]
+	
         elif benchmark_dataset == "WebApplication":
-            target_names = ["Download Video", "Change Password", "None", "Export Data", "Sync Accounts",
-                      "Filter Spam", "Find Alternative", "Delete Account"]
+            target_names = ["Download Video",
+			    "Change Password",
+			    "None",
+			    "Export Data",
+			    "Sync Accounts",
+        	            "Filter Spam",
+			    "Find Alternative",
+			    "Delete Account"]
         print("Train Size: {}\nTest Size: {}".format(X_train.shape[0], X_test.shape[0]))
         results = []
         #alphas = np.array([1,0.1,0.01,0.001,0.0001,0])
         parameters_mlp={'hidden_layer_sizes':[(100,50), (300, 100),(300,200,100)]}
         parameters_RF={ "n_estimators" : [50,60,70],
-               "min_samples_leaf" : [1, 11]}
-        k_range = list(range(3,7))
+               		"min_samples_leaf" : [1, 11]}
+        k_range     = list(range(3,7))
         parameters_knn = {'n_neighbors':k_range}
-        knn=KNeighborsClassifier(n_neighbors=5)
+        knn=    KNeighborsClassifier(n_neighbors=5)
         for clf, name in [  
                 (RidgeClassifier(tol=1e-2, solver="lsqr"), "Ridge Classifier"),
                 (GridSearchCV(knn,parameters_knn, cv=5),"gridsearchknn"),
@@ -776,12 +788,9 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
         #print('=' * 80)
         #print("KMeans")
         results.append(benchmark(KMeans(n_clusters=2, init='k-means++', max_iter=300,
-                    verbose=0, random_state=0, tol=1e-4),
-                                 X_train, y_train, X_test, y_test, target_names,
-                                 feature_names=feature_names))
-
-
-
+                       verbose=0, random_state=0, tol=1e-4),
+		       X_train, y_train, X_test, y_test, target_names,
+                       feature_names=feature_names))
         #print('=' * 80)
         #print("LogisticRegression")
         kfold = model_selection.KFold(n_splits=2, random_state=0)
@@ -789,16 +798,10 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
               fit_intercept=True, intercept_scaling=1, max_iter=100,
               multi_class='ovr', n_jobs=1, penalty='l2', random_state=None,
               solver='liblinear', tol=0.0001, verbose=0, warm_start=False),
-                                 X_train, y_train, X_test, y_test, target_names,
-                                 feature_names=feature_names))
+              X_train, y_train, X_test, y_test, target_names,
+              feature_names=feature_names))
 
         #plot_results(results)
-
-
-
-
-
-
     print(len(X_train))
 
 
