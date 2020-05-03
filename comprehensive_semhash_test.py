@@ -297,7 +297,7 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
             """ Split the augmented train dataset
                 @param: X_train The full array of sentences
                 @param: y_train The train labels in the train dataset
-                @param: num_samples the number of new sentences to create (default 1000)
+                @param: num_samples the number of new sentences to create (default 100)
 
                 return Augmented training dataset"""
             Xs, ys = [], []
@@ -366,12 +366,12 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
             """ Split the augmented train dataset
                 @param: X_train The full array of sentences
                 @param: y_train The train labels in the train dataset
-                @param: num_samples the number of new sentences to create (default 1000)
+                @param: num_samples the number of new sentences to create (default 100)
 
                 return Augmented training dataset"""
             Xs, ys = [], []
             for X, y in zip(X_train, y_train):
-                sample = [[Xs.append(self._get_synonym_sentence(X)), ys.append(y)] for item in range(additional_synonyms)]
+                sample = [[Xs.append(self._get_synonym_sentence(X)), ys.append(y)] for item in range(num_samples)]
     #             print(X, y)
 
             #with open(filename_train+"augment", 'w', encoding='utf8') as csvFile:
@@ -385,7 +385,7 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
 
                 return The vector separated in test, train and the labels for each one"""
             with open(self.dataset_path) as csvfile:
-                readCSV = csv.reader(csvfile, delimiter='	')
+                readCSV = csv.reader(csvfile, delimiter='\t')
                 all_rows = list(readCSV)
     #             for i in all_rows:
     #                 if i ==  28823:
@@ -415,8 +415,8 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
         def process_batch(self, X):
             """See the progress as is coming along.
 
-                return list[] of clean sentences"""
-            return [self.process_sentence(a) for a in tqdm(X)]
+                return list[] of cleprocess_sentencean sentences"""
+            return [self.(a) for a in tqdm(X)]
 
         def stratified_split(self):
             """ Split data whole into stratified test and training sets, then remove stop word from sentences
@@ -463,11 +463,11 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
         for elem in splits[0]["train"]["y"]:
             yS_train.append(intent_dict[elem])
         
-        return xS_train , yS_train , preprocess_time
+        return xS_train , yS_train 
 
 
 
-
+#   preprocessing
     X_train_raw, y_train_raw = read_CSV_datafile(filename = filename_train)
     X_test_raw, y_test_raw = read_CSV_datafile(filename = filename_test)
     print(y_train_raw[:5])
