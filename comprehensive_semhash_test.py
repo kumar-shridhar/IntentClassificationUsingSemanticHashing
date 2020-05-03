@@ -415,8 +415,8 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
         def process_batch(self, X):
             """See the progress as is coming along.
 
-                return list[] of cleprocess_sentencean sentences"""
-            return [self.(a) for a in tqdm(X)]
+                return list[] of clean sentences"""
+            return [self.process_sentence(a) for a in tqdm(X)]
 
         def stratified_split(self):
             """ Split data whole into stratified test and training sets, then remove stop word from sentences
