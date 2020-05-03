@@ -37,6 +37,8 @@ from sklearn import metrics
 from sklearn.cluster import KMeans
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
+import gensim 
+from gensim.models import Word2Vec 
 
 # ## Benchmarking using SemHash on NLU Evaluation Corpora
 # 
@@ -535,6 +537,11 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
             vectorizer = TfidfVectorizer(analyzer='word')
             vectorizer.fit(corpus)
             feature_names = vectorizer.get_feature_names()
+        elif VECTORIZER =="word2vec":
+            vectorizer = gensim.models.Word2Vec(analyze = 'word')
+            vectorizer.fit(corpus)
+            feature_name = vectorizer.get_feature_name()
+        
         else:
             raise Exception("{} is not a recognized Vectorizer".format(VECTORIZER))
         return vectorizer, feature_names
