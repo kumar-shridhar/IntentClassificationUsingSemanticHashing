@@ -447,7 +447,7 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
 
     print("./datasets/KL/" + benchmark_dataset + "/train.csv")
     def gen_raw_train_data(benchmark_dataset):
-        
+        ''' generate raw training data from benchmark dataset '''
         dataset = MeraDataset(os.path.join("./datasets/KL/" , benchmark_dataset , "/train.csv"))
         print("mera****************************")
         splits = dataset.get_splits()
@@ -651,6 +651,17 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
     X_train, y_train, X_test, y_test, feature_names = data_for_training()
     vectorize_time = time()-t0
 
+    def get_target_names (benchmark_dataset):
+        """ returns a list of target names for corresponding benchmark_dataset """
+        if benchmark_dataset == "Chatbot":
+            target_names = ["Departure Time", "Find Connection"]
+        elif benchmark_dataset == "AskUbuntu":
+            target_names = ["Make Update", "Setup Printer", "Shutdown Computer","Software Recommendation", "None"]
+        elif benchmark_dataset == "WebApplication":
+            target_names = ["Download Video", "Change Password", "None", "Export Data", "Sync Accounts",
+                      "Filter Spam", "Find Alternative", "Delete Account"]
+        return target_names
+
     with open("./"+METADATA_FILE, 'a', encoding='utf8') as csvFile:
             fileWriter = csv.writer(csvFile, delimiter='\t')
             fileWriter.writerow([benchmark_dataset,str(oversample),str(synonym_extra_samples),str(augment_extra_samples),str(additional_synonyms),str(additional_augments),str(mistake_distance),str(preprocess_time),str(semhash_time),str(vectorize_time)])
@@ -660,19 +671,13 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
     print(y_train[0])
     print(feature_names)
 
-
+    
     for _ in enumerate(range(NUMBER_OF_RUNS_PER_SETTING)):
         i_s = 0
         split = 0
         print("Evaluating Split {}".format(i_s))
-        target_names = None
-        if benchmark_dataset == "Chatbot":
-            target_names = ["Departure Time", "Find Connection"]
-        elif benchmark_dataset == "AskUbuntu":
-            target_names = ["Make Update", "Setup Printer", "Shutdown Computer","Software Recommendation", "None"]
-        elif benchmark_dataset == "WebApplication":
-            target_names = ["Download Video", "Change Password", "None", "Export Data", "Sync Accounts",
-                      "Filter Spam", "Find Alternative", "Delete Account"]
+        target_names = get_target_names(benchmark_dataset)
+
         print("Train Size: {}\nTest Size: {}".format(X_train.shape[0], X_test.shape[0]))
         results = []
         #alphas = np.array([1,0.1,0.01,0.001,0.0001,0])
