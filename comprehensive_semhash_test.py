@@ -541,7 +541,6 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
             vectorizer = gensim.models.Word2Vec(analyze = 'word')
             vectorizer.fit(corpus)
             feature_name = vectorizer.get_feature_name()
-        
         else:
             raise Exception("{} is not a recognized Vectorizer".format(VECTORIZER))
         return vectorizer, feature_names
