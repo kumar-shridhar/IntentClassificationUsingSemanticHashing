@@ -297,7 +297,7 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
             """ Split the augmented train dataset
                 @param: X_train The full array of sentences
                 @param: y_train The train labels in the train dataset
-                @param: num_samples the number of new sentences to create (default 1000)
+                @param: num_samples the number of new sentences to create (default 100)
 
                 return Augmented training dataset"""
             Xs, ys = [], []
@@ -366,12 +366,12 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
             """ Split the augmented train dataset
                 @param: X_train The full array of sentences
                 @param: y_train The train labels in the train dataset
-                @param: num_samples the number of new sentences to create (default 1000)
+                @param: num_samples the number of new sentences to create (default 100)
 
                 return Augmented training dataset"""
             Xs, ys = [], []
             for X, y in zip(X_train, y_train):
-                sample = [[Xs.append(self._get_synonym_sentence(X)), ys.append(y)] for item in range(additional_synonyms)]
+                sample = [[Xs.append(self._get_synonym_sentence(X)), ys.append(y)] for item in range(num_samples)]
     #             print(X, y)
 
             #with open(filename_train+"augment", 'w', encoding='utf8') as csvFile:
@@ -385,7 +385,7 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
 
                 return The vector separated in test, train and the labels for each one"""
             with open(self.dataset_path) as csvfile:
-                readCSV = csv.reader(csvfile, delimiter='	')
+                readCSV = csv.reader(csvfile, delimiter='\t')
                 all_rows = list(readCSV)
     #             for i in all_rows:
     #                 if i ==  28823:
@@ -446,32 +446,37 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
 
 
     print("./datasets/KL/" + benchmark_dataset + "/train.csv")
-    t0 = time()
-    dataset = MeraDataset("./datasets/KL/" + benchmark_dataset + "/train.csv")
-    
-    print("mera****************************")
-    splits = dataset.get_splits()
-    xS_train = []
-    yS_train = []
-    for elem in splits[0]["train"]["X"]:
-        xS_train.append(elem)
-    print(xS_train[:5])
+    def gen_raw_train_data(benchmark_dataset):
+        ''' generate raw training data from benchmark dataset '''
+        dataset = MeraDataset(os.path.join("./datasets/KL/" , benchmark_dataset , "/train.csv"))
+        print("mera****************************")
+        splits = dataset.get_splits()
+        xS_train = []
+        yS_train = []
+        
+        for elem in splits[0]["train"]["X"]:
+            xS_train.append(elem)
+        
+        print(xS_train[:5])
+        print(len(xS_train))
 
-    for elem in splits[0]["train"]["y"]:
-        yS_train.append(intent_dict[elem])
-    preprocess_time = time()-t0
-    print(len(xS_train))
+        for elem in splits[0]["train"]["y"]:
+            yS_train.append(intent_dict[elem])
+        
+        return xS_train , yS_train 
 
 
 
-
+#   preprocessing
     X_train_raw, y_train_raw = read_CSV_datafile(filename = filename_train)
     X_test_raw, y_test_raw = read_CSV_datafile(filename = filename_test)
     print(y_train_raw[:5])
     print(X_test_raw[:5])
     print(y_test_raw[:5])
-    X_train_raw = xS_train
-    y_train_raw = yS_train
+    t0 = time()
+    X_train_raw ,y_train_raw = gen_raw_train_data(benchmark_dataset)
+    preprocess_time = time()-t0
+
 
     print("Training data samples: \n",X_train_raw, "\n\n")
 
@@ -646,6 +651,17 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
     X_train, y_train, X_test, y_test, feature_names = data_for_training()
     vectorize_time = time()-t0
 
+    def get_target_names (benchmark_dataset):
+        """ returns a list of target names for corresponding benchmark_dataset """
+        if benchmark_dataset == "Chatbot":
+            target_names = ["Departure Time", "Find Connection"]
+        elif benchmark_dataset == "AskUbuntu":
+            target_names = ["Make Update", "Setup Printer", "Shutdown Computer","Software Recommendation", "None"]
+        elif benchmark_dataset == "WebApplication":
+            target_names = ["Download Video", "Change Password", "None", "Export Data", "Sync Accounts",
+                      "Filter Spam", "Find Alternative", "Delete Account"]
+        return target_names
+
     with open("./"+METADATA_FILE, 'a', encoding='utf8') as csvFile:
             fileWriter = csv.writer(csvFile, delimiter='\t')
             fileWriter.writerow([benchmark_dataset,str(oversample),str(synonym_extra_samples),str(augment_extra_samples),str(additional_synonyms),str(additional_augments),str(mistake_distance),str(preprocess_time),str(semhash_time),str(vectorize_time)])
@@ -655,19 +671,13 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
     print(y_train[0])
     print(feature_names)
 
-
+    
     for _ in enumerate(range(NUMBER_OF_RUNS_PER_SETTING)):
         i_s = 0
         split = 0
         print("Evaluating Split {}".format(i_s))
-        target_names = None
-        if benchmark_dataset == "Chatbot":
-            target_names = ["Departure Time", "Find Connection"]
-        elif benchmark_dataset == "AskUbuntu":
-            target_names = ["Make Update", "Setup Printer", "Shutdown Computer","Software Recommendation", "None"]
-        elif benchmark_dataset == "WebApplication":
-            target_names = ["Download Video", "Change Password", "None", "Export Data", "Sync Accounts",
-                      "Filter Spam", "Find Alternative", "Delete Account"]
+        target_names = get_target_names(benchmark_dataset)
+
         print("Train Size: {}\nTest Size: {}".format(X_train.shape[0], X_test.shape[0]))
         results = []
         #alphas = np.array([1,0.1,0.01,0.001,0.0001,0])
