@@ -37,6 +37,7 @@ from sklearn import metrics
 from sklearn.cluster import KMeans
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
+from tokenizers import ByteLevelBPETokenizer
 
 # ## Benchmarking using SemHash on NLU Evaluation Corpora
 # 
@@ -385,7 +386,7 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
 
                 return The vector separated in test, train and the labels for each one"""
             with open(self.dataset_path) as csvfile:
-                readCSV = csv.reader(csvfile, delimiter='	')
+                readCSV = csv.reader(csvfile, delimiter='   ')
                 all_rows = list(readCSV)
     #             for i in all_rows:
     #                 if i ==  28823:
@@ -492,12 +493,16 @@ for benchmark_dataset, (oversample, synonym_extra_samples, augment_extra_samples
         return zip(*[input_list[i:] for i in range(n)])
 
     def semhash_tokenizer(text):
-        tokens = text.split(" ")
+        BPE = ByteLevelBPETokenizer("./vocab.json","./merges.txt")
+        BPEEncoder = BPE.encode(text)
+        tokens = list(BPEEncoder.tokens)
+        for i in range (len(tokens)):
+            if tokens[i][0] == "Ġ":
+                tokens[i] = tokens[i][1:]
         final_tokens = []
         for unhashed_token in tokens:
             hashed_token = "#{}#".format(unhashed_token)
-            final_tokens += [''.join(gram)
-                             for gram in list(find_ngrams(list(hashed_token), 3))]
+            final_tokens += [''.join(gram) for gram in list(find_ngrams(list(hashed_token), 3))]
         return final_tokens
 
     def semhash_corpus(corpus):
